@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Classic Tetris</title>
+<style>
+.mobile-controls {
+margin-top: 20px;
+display: flex;
+justify-content: center;
+gap: 15px;
+width: 100%;
+touch-action: manipulation;
+}
+
+.control-btn {
+width: 65px;
+height: 65px;
+border-radius: 15px;
+background: rgba(255,255,255,0.15);
+border: 2px solid rgba(255,255,255,0.3);
+color: white;
+font-size: 28px;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: all 0.1s;
+user-select: none;
+}
+
+.control-btn:active {
+background: rgba(255,255,255,0.3);
+transform: scale(0.95);
+}
+
+.rotate-btn {
+background: rgba(255, 215, 0, 0.2);
+}
+
+.container {
+position: relative;
+margin-top: 50px;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+
+.level-up {
+position: absolute;
+left: -320px;
+top: 50%;
+transform: translateY(-50%);
+font-size: 48px;
+color: #FFD700;
+text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+opacity: 0;
+animation: levelUp 4s forwards;
+}
+
+@keyframes levelUp {
+0% { opacity: 0; left: -320px; }
+20% { opacity: 1; left: 20px; }
+80% { opacity: 1; left: 20px; }
+100% { opacity: 0; left: -320px; }
+}
+
+body {
+background: #202028;
+color: #fff;
+font-family: sans-serif;
+display: flex;
+justify-content: center;
+margin: 0;
+touch-action: none;
+}
+#game {
+border: 2px solid #333;
+background: #000;
+display: grid;
+grid-template-columns: repeat(10, 30px);
+grid-template-rows: repeat(20, 30px);
+touch-action: none;
+}
+.cell {
+width: 30px;
+height: 30px;
+border: 1px solid rgba(255,255,255,0.1);
+box-sizing: border-box;
+}
+#controls {
+position: absolute;
+top: 0;
+left: 320px;
+padding: 20px;
+}
+#next-piece {
+width: 120px;
+height: 120px;
+border: 2px solid #333;
+margin-bottom: 20px;
+position: relative;
+background: #000;
+overflow: hidden;
+}
+.preview-cell {
+position: absolute;
+width: 20px;
+height: 20px;
+border: 1px solid rgba(255,255,255,0.1);
+box-sizing: border-box;
+}
+button {
+padding: 15px 30px;
+font-size: 18px;
+background: #4CAF50;
+border: none;
+color: white;
+cursor: pointer;
+position: absolute;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+}
+#score {
+position: absolute;
+top: -40px;
+left: 0;
+font-size: 24px;
+}
+.game-over {
+position: absolute;
+background: rgba(0,0,0,0.8);
+color: white;
+padding: 20px;
+text-align: center;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+z-index:2;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div id="score">Score: 0</div>
+<div id="game"></div>
+<div id="controls">
+<div id="next-piece"></div>
+</div>
+<button id="startBtn">Start game</button>
+
+<div class="mobile-controls">
+<div class="control-btn rotate-btn" id="mobileUp">↻</div>
+<div class="control-btn" id="mobileDown">↓</div>
+<div class="control-btn" id="mobileLeft">←</div>
+<div class="control-btn" id="mobileRight">→</div>
+</div>
+</div>
+
+<script>
+const SHAPES = [
+[[1,1,1,1]], [[1,1,1],[0,1,0]], [[1,1,1],[1,0,0]],
+[[1,1,1],[0,0,1]], [[1,1],[1,1]], [[1,1,0],[0,1,1]], [[0,1,1],[1,1,0]]
+];
+
+const COLORS = ['#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
+
+let score = 0;
+let gameLoop;
+let currentPiece = null;
+let nextPiece = null;
+const WIDTH = 10;
+const HEIGHT = 20;
+let matrix = Array(HEIGHT).fill().map(() => Array(WIDTH).fill(0));
+let isGameOver = false;
+let difficultyLevel = 0;
+let isMoving = false;
+let lastUpdate = 0;
+
+function initGame() {
+const game = document.getElementById('game');
+game.innerHTML = '';
+for(let y = 0; y < HEIGHT; y++) {
+for(let x = 0; x < WIDTH; x++) {
+const cell = document.createElement('div');
+cell.className = 'cell';
+cell.setAttribute('data-x', x);
+cell.setAttribute('data-y', y);
+game.appendChild(cell);
+}
+}
+}
+
+function showLevelUp() {
+const levelUpDiv = document.createElement('div');
+levelUpDiv.className = 'level-up';
+levelUpDiv.textContent = `Level Up! Lv.${difficultyLevel + 1}`;
+document.querySelector('.container').appendChild(levelUpDiv);
+setTimeout(() => levelUpDiv.remove(), 4000);
+}
+
+function createPiece() {
+const type = Math.floor(Math.random() * SHAPES.length);
+const shape = SHAPES[type];
+return {
+shape: shape,
+color: COLORS[Math.floor(Math.random() * COLORS.length)],
+x: Math.floor((WIDTH - shape[0].length)/2),
+y: -shape.length + 1 // fix initial position problem
+};
+}
+
+function draw() {
+const now = Date.now();
+if (now - lastUpdate < 16) return; // limit to 60fps
+lastUpdate = now;
+
+document.querySelectorAll('.cell').forEach(cell => cell.style.backgroundColor = '');
+matrix.forEach((row, y) => row.forEach((value, x) => {
+if(value) {
+const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+if(cell) cell.style.backgroundColor = value;
+}
+}));
+
+if(currentPiece) {
+currentPiece.shape.forEach((row, y) => row.forEach((value, x) => {
+if(value) {
+const px = currentPiece.x + x;
+const py = currentPiece.y + y;
+if(py >= 0 && px >= 0 && px < WIDTH) {
+const cell = document.querySelector(`[data-x="${px}"][data-y="${py}"]`);
+if(cell) cell.style.backgroundColor = currentPiece.color;
+}
+}
+}));
+}
+}
+
+function drawNextPiece() {
+const container = document.getElementById('next-piece');
+container.innerHTML = '';
+if(!nextPiece) return;
+
+const shape = nextPiece.shape;
+const scale = Math.min(22, 120 / Math.max(shape[0].length, shape.length));
+
+shape.forEach((row, y) => row.forEach((value, x) => {
+if(value) {
+const cell = document.createElement('div');
+cell.className = 'preview-cell';
+cell.style.cssText = `
+background-color:${nextPiece.color};
+width:${scale}px;
+height:${scale}px;
+left:${(120 - shape[0].length * scale)/2 + x * scale}px;
+top:${(120 - shape.length * scale)/2 + y * scale}px
+`;
+container.appendChild(cell);
+}
+}));
+}
+
+function isValidMove(piece, moveX = 0, moveY = 0, newShape = null) {
+const shape = newShape || piece.shape;
+return shape.every((row, dy) =>
+row.every((value, dx) => {
+if(!value) return true;
+const px = piece.x + dx + moveX;
+const py = piece.y + dy + moveY;
+return (
+px >= 0 &&
+px < WIDTH &&
+py < HEIGHT &&
+(py < 0 || !matrix[py][px])
+);
+})
+);
+}
+
+function mergePiece() {
+currentPiece.shape.forEach((row, y) => row.forEach((value, x) => {
+if(value) {
+const py = currentPiece.y + y;
+const px = currentPiece.x + x;
+if(py >= 0 && px >= 0 && px < WIDTH) {
+matrix[py][px] = currentPiece.color;
+}
+}
+}));
+}
+
+function clearLines() {
+let linesCleared = 0;
+for(let y = HEIGHT - 1; y >= 0; y--) {
+if(matrix[y].every(cell => cell !== 0)) {
+matrix.splice(y, 1);
+matrix.unshift(Array(WIDTH).fill(0));
+linesCleared++;
+y++; // Recheck the same line position
+}
+}
+if(linesCleared > 0) {
+score += linesCleared * 100 * linesCleared;
+document.getElementById('score').textContent = `score: ${score}`;
+
+const newLevel = Math.floor(score / 1000);
+if(newLevel > difficultyLevel) {
+difficultyLevel = newLevel;
+showLevelUp();
+clearInterval(gameLoop);
+const speed = Math.max(1000 - (difficultyLevel * 100), 200);
+gameLoop = setInterval(update, speed);
+}
+}
+}
+
+function gameOver() {
+clearInterval(gameLoop);
+isGameOver = true;
+const gameOverDiv = document.createElement('div');
+gameOverDiv.className = 'game-over';
+gameOverDiv.innerHTML = `
+<h2>Game Over! </h2>
+<p>Final score: ${score}</p>
+<button onclick="location.reload()">Restart</button>
+`;
+document.querySelector('.container').appendChild(gameOverDiv);
+}
+
+function update() {
+if(isGameOver) return;
+
+if(currentPiece && isValidMove(currentPiece, 0,1)) {
+currentPiece.y++;
+} else {
+if(currentPiece) {
+mergePiece();
+currentPiece = null;
+}
+clearLines();
+
+if(!currentPiece) {
+currentPiece = nextPiece || createPiece();
+nextPiece = createPiece();
+drawNextPiece();
+
+if(!isValidMove(currentPiece)) {
+return gameOver();
+}
+}
+}
+draw();
+}
+
+function handleControl(type) {
+if(isGameOver || !currentPiece) return;
+
+switch(type) {
+case 'left':
+if(isValidMove(currentPiece, -1, 0)) currentPiece.x--;
+break;
+case 'right':
+if(isValidMove(currentPiece, 1, 0)) currentPiece.x++;
+break;
+case 'rotate':
+const rotated = currentPiece.shape[0].map((_, i) =>
+currentPiece.shape.map(row => row[i]).reverse()
+);
+if(isValidMove(currentPiece, 0, 0, rotated)) {
+currentPiece.shape = rotated;
+}
+break;
+case 'down':
+if(isValidMove(currentPiece, 0, 1)) currentPiece.y++;
+break;
+case 'drop':
+while(isValidMove(currentPiece, 0, 1)) {
+currentPiece.y++;
+}
+update();
+break;
+}
+draw();
+}
+
+// Input processing
+document.addEventListener('keydown', e => {
+e.preventDefault();
+if(e.repeat) return;
+
+switch(e.key) {
+case 'ArrowLeft': handleControl('left'); break;
+case 'ArrowRight': handleControl('right'); break;
+case 'ArrowUp': handleControl('rotate'); break;
+case 'ArrowDown': handleControl('down'); break;
+case ' ': handleControl('drop'); break;
+}
+});
+
+// Mobile control
+const addControl = (elementId,type) => {
+const element = document.getElementById(elementId);
+const events = ['touchstart', 'mousedown'];
+
+events.forEach(eventType => {
+element.addEventListener(eventType, e => {
+e.preventDefault();
+handleControl(type);
+});
+});
+};
+
+addControl('mobileLeft', 'left');
+addControl('mobileRight', 'right');
+addControl('mobileUp', 'rotate');
+addControl('mobileDown', 'down');
+
+// Long press to move
+let moveInterval;
+const startMove = (type) => {
+if(!moveInterval) {
+handleControl(type);
+moveInterval = setInterval(() => handleControl(type), 100);
+}
+};
+const stopMove = () => {
+clearInterval(moveInterval);
+moveInterval = null;
+};
+
+['mousedown', 'touchstart'].forEach(e => {
+document.getElementById('mobileLeft').addEventListener(e, () => startMove('left'));
+document.getElementById('mobileRight').addEventListener(e, () => startMove('right'));
+});
+
+['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(e => {
+document.getElementById('mobileLeft').addEventListener(e, stopMove);
+document.getElementById('mobileRight').addEventListener(e, stopMove);
+});
+
+// Game initialization
+document.getElementById('startBtn').addEventListener('click', () => {
+document.getElementById('startBtn').style.display = 'none';
+isGameOver = false;
+score = 0;
+difficultyLevel = 0;
+matrix = Array(HEIGHT).fill().map(() => Array(WIDTH).fill(0));
+currentPiece = createPiece();
+nextPiece = createPiece();
+drawNextPiece();
+document.getElementById('score').textContent = `score: ${score}`;
+clearInterval(gameLoop);
+gameLoop = setInterval(update,1000);
+draw();
+});
+
+initGame();
+</script>
+</body>
+</html>
