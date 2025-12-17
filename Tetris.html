@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modified Tetris - Power Blocks</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0a0ff;
+            margin-bottom: 30px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .main-game {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #4ecdc4;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            width: 300px;
+            height: 600px;
+            gap: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #45b7d1;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .cell {
+            background: rgba(0, 20, 40, 0.5);
+            transition: background-color 0.2s;
+        }
+        
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 300px;
+        }
+        
+        .panel {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid #ff6b6b;
+        }
+        
+        h2 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: rgba(70, 70, 100, 0.3);
+            border-radius: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd166;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #a0a0ff;
+        }
+        
+        .next-piece-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 5px;
+        }
+        
+        .next-cell {
+            background: rgba(0, 20, 40, 0.5);
+            border-radius: 2px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .control-key {
+            background: rgba(70, 70, 100, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            border: 1px solid #4ecdc4;
+        }
+        
+        .control-key span {
+            display: block;
+            font-size: 0.8rem;
+            color: #ffd166;
+            margin-top: 5px;
+        }
+        
+        .power-ups {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .power-up {
+            background: rgba(255, 100, 100, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            border: 1px solid #ff6b6b;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .power-up:hover:not(:disabled) {
+            background: rgba(255, 100, 100, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .power-up:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .power-up-count {
+            display: block;
+            font-size: 1.2rem;
+            color: #ffd166;
+            margin-top: 5px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .start-btn {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+        
+        .pause-btn {
+            background: linear-gradient(135deg, #ffd166, #ff9e6d);
+            color: white;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .instructions {
+            max-width: 800px;
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #45b7d1;
+        }
+        
+        .instructions h3 {
+            color: #ffd166;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            list-style-position: inside;
+            margin-bottom: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            color: #e0e0ff;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 100;
+            border: 3px solid #ff6b6b;
+            display: none;
+        }
+        
+        .game-over h2 {
+            color: #ff6b6b;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .game-over p {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #ffd166;
+        }
+        
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .side-panel {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+        
+        /* Block colors */
+        .block-i { background: linear-gradient(135deg, #00d2ff, #3a7bd5); }
+        .block-j { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+        .block-l { background: linear-gradient(135deg, #f46b45, #eea849); }
+        .block-o { background: linear-gradient(135deg, #ffd166, #ff9e6d); }
+        .block-s { background: linear-gradient(135deg, #a8ff78, #78ffd6); }
+        .block-t { background: linear-gradient(135deg, #ff6b6b, #ff8e53); }
+        .block-z { background: linear-gradient(135deg, #834d9b, #d04ed6); }
+        .block-bomb { 
+            background: linear-gradient(135deg, #ff0000, #ff8800);
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .clearing {
+            animation: clear 0.5s;
+        }
+        
+        @keyframes clear {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); background: white; }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>POWER TETRIS</h1>
+        <div class="subtitle">Classic Tetris with explosive modifications!</div>
+    </div>
+    
+    <div class="game-container">
+        <div class="main-game">
+            <div class="game-board" id="game-board"></div>
+        </div>
+        
+        <div class="side-panel">
+            <div class="panel">
+                <h2>STATS</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="score">0</div>
+                        <div class="stat-label">SCORE</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="level">1</div>
+                        <div class="stat-label">LEVEL</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="lines">0</div>
+                        <div class="stat-label">LINES</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="high-score">0</div>
+                        <div class="stat-label">HIGH SCORE</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>NEXT PIECE</h2>
+                <div class="next-piece-container" id="next-piece"></div>
+            </div>
+            
+            <div class="panel">
+                <h2>CONTROLS</h2>
+                <div class="controls">
+                    <div class="control-key">← →<span>Move</span></div>
+                    <div class="control-key">↑<span>Rotate</span></div>
+                    <div class="control-key">↓<span>Soft Drop</span></div>
+                    <div class="control-key">SPACE<span>Hard Drop</span></div>
+                    <div class="control-key">P<span>Pause</span></div>
+                    <div class="control-key">R<span>Reset</span></div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>POWER-UPS</h2>
+                <div class="power-ups">
+                    <div class="power-up" id="powerup-bomb" onclick="useBomb()">
+                        BOMB BLOCK<span class="power-up-count" id="bomb-count">0</span>
+                    </div>
+                    <div class="power-up" id="powerup-clear" onclick="clearLine()">
+                        LINE CLEAR<span class="power-up-count" id="clear-count">3</span>
+                    </div>
+                </div>
+                
+                <div class="buttons">
+                    <button class="start-btn" onclick="startGame()">START</button>
+                    <button class="pause-btn" onclick="togglePause()">PAUSE</button>
+                    <button class="reset-btn" onclick="resetGame()">RESET</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>GAME MODIFICATIONS & RULES</h3>
+        <ul>
+            <li><strong>Bomb Blocks</strong>: Randomly appears as the next piece. Clears a 3x3 area when placed</li>
+            <li><strong>Power-ups</strong>: Earn power-ups by clearing multiple lines at once</li>
+            <li><strong>Line Clear Power-up</strong>: Manually clear any completed line (limited uses)</li>
+            <li><strong>Scoring</strong>: +100 per line, +300 for 2 lines, +500 for 3 lines, +800 for Tetris (4 lines)</li>
+            <li><strong>Level Up</strong>: Every 10 lines increases level and speed</li>
+            <li><strong>Special</strong>: Bomb blocks give +500 points and count as 2 lines cleared</li>
+        </ul>
+        <p>Clear as many lines as possible before the blocks reach the top!</p>
+    </div>
+    
+    <div class="game-over" id="game-over">
+        <h2>GAME OVER</h2>
+        <p>Final Score: <span id="final-score">0</span></p>
+        <p>Lines Cleared: <span id="final-lines">0</span></p>
+        <button class="start-btn" onclick="resetGame()">PLAY AGAIN</button>
+    </div>
+
+    <script>
+        // Game constants
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 20;
+        const EMPTY = 'empty';
+        
+        // Game variables
+        let board = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let gameInterval = null;
+        let isPaused = false;
+        let isGameOver = false;
+        let score = 0;
+        let level = 1;
+        let linesCleared = 0;
+        let highScore = localStorage.getItem('tetrisHighScore') || 0;
+        let bombCount = 0;
+        let clearCount = 3;
+        
+        // Tetromino shapes with colors
+        const PIECES = [
+            { // I
+                shape: [
+                    [0,0,0,0],
+                    [1,1,1,1],
+                    [0,0,0,0],
+                    [0,0,0,0]
+                ],
+                color: 'block-i'
+            },
+            { // J
+                shape: [
+                    [1,0,0],
+                    [1,1,1],
+                    [0,0,0]
+                ],
+                color: 'block-j'
+            },
+            { // L
+                shape: [
+                    [0,0,1],
+                    [1,1,1],
+                    [0,0,0]
+                ],
+                color: 'block-l'
+            },
+            { // O
+                shape: [
+                    [1,1],
+                    [1,1]
+                ],
+                color: 'block-o'
+            },
+            { // S
+                shape: [
+                    [0,1,1],
+                    [1,1,0],
+                    [0,0,0]
+                ],
+                color: 'block-s'
+            },
+            { // T
+                shape: [
+                    [0,1,0],
+                    [1,1,1],
+                    [0,0,0]
+                ],
+                color: 'block-t'
+            },
+            { // Z
+                shape: [
+                    [1,1,0],
+                    [0,1,1],
+                    [0,0,0]
+                ],
+                color: 'block-z'
+            },
+            { // BOMB (special)
+                shape: [
+                    [1]
+                ],
+                color: 'block-bomb',
+                isBomb: true
+            }
+        ];
+        
+        // Initialize game board
+        function initBoard() {
+            board = [];
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                board[y] = [];
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    board[y][x] = EMPTY;
+                }
+            }
+            renderBoard();
+        }
+        
+        // Render game board
+        function renderBoard() {
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.innerHTML = '';
+            
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${x}-${y}`;
+                    
+                    if (board[y][x] !== EMPTY) {
+                        cell.classList.add(board[y][x]);
+                    }
+                    
+                    // Draw current piece
+                    if (currentPiece) {
+                        for (let py = 0; py < currentPiece.shape.length; py++) {
+                            for (let px = 0; px < currentPiece.shape[py].length; px++) {
+                                if (currentPiece.shape[py][px] &&
+                                    y === currentPiece.y + py &&
+                                    x === currentPiece.x + px) {
+                                    cell.className = 'cell ' + currentPiece.color;
+                                }
+                            }
+                        }
+                    }
+                    
+                    gameBoard.appendChild(cell);
+                }
+            }
+        }
+        
+        // Get random piece
+        function getRandomPiece() {
+            // 10% chance for bomb if we have less than 3 bombs
+            const bombChance = bombCount < 3 ? 0.1 : 0.02;
+            if (Math.random() < bombChance) {
+                return JSON.parse(JSON.stringify(PIECES[7])); // Bomb piece
+            }
+            const pieceIndex = Math.floor(Math.random() * 7);
+            return JSON.parse(JSON.stringify(PIECES[pieceIndex]));
+        }
+        
+        // Create new piece
+        function createNewPiece() {
+            currentPiece = nextPiece || getRandomPiece();
+            nextPiece = getRandomPiece();
+            
+            currentPiece.x = Math.floor(BOARD_WIDTH / 2) - Math.floor(currentPiece.shape[0].length / 2);
+            currentPiece.y = 0;
+            
+            // Check for game over
+            if (checkCollision(currentPiece.x, currentPiece.y, currentPiece.shape)) {
+                gameOver();
+                return;
+            }
+            
+            renderNextPiece();
+            renderBoard();
+        }
+        
+        // Render next piece preview
+        function renderNextPiece() {
+            const nextPieceContainer = document.getElementById('next-piece');
+            nextPieceContainer.innerHTML = '';
+            
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'next-cell';
+                    
+                    if (nextPiece && y < nextPiece.shape.length && x < nextPiece.shape[y].length) {
+                        if (nextPiece.shape[y][x]) {
+                            cell.classList.add(nextPiece.color);
+                        }
+                    }
+                    
+                    nextPieceContainer.appendChild(cell);
+                }
+            }
+        }
+        
+        // Check collision
+        function checkCollision(x, y, shape) {
+            for (let py = 0; py < shape.length; py++) {
+                for (let px = 0; px < shape[py].length; px++) {
+                    if (shape[py][px]) {
+                        const newX = x + px;
+                        const newY = y + py;
+                        
+                        if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
+                            return true;
+                        }
+                        
+                        if (newY >= 0 && board[newY][newX] !== EMPTY) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Merge piece to board
+        function mergePiece() {
+            for (let py = 0; py < currentPiece.shape.length; py++) {
+                for (let px = 0; px < currentPiece.shape[py].length; px++) {
+                    if (currentPiece.shape[py][px]) {
+                        const x = currentPiece.x + px;
+                        const y = currentPiece.y + py;
+                        
+                        if (y >= 0) {
+                            board[y][x] = currentPiece.color;
+                            
+                            // Handle bomb explosion
+                            if (currentPiece.isBomb) {
+                                explodeBomb(x, y);
+                                bombCount++;
+                                updateBombCount();
+                                addScore(500);
+                                linesCleared += 2; // Bomb counts as 2 lines
+                                updateStats();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check for completed lines
+            checkLines();
+            createNewPiece();
+        }
+        
+        // Bomb explosion effect
+        function explodeBomb(x, y) {
+            // Clear 3x3 area around bomb
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const newX = x + dx;
+                    const newY = y + dy;
+                    
+                    if (newX >= 0 && newX < BOARD_WIDTH && newY >= 0 && newY < BOARD_HEIGHT) {
+                        if (board[newY][newX] !== EMPTY) {
+                            // Add explosion animation
+                            const cell = document.getElementById(`cell-${newX}-${newY}`);
+                            if (cell) {
+                                cell.classList.add('clearing');
+                                setTimeout(() => {
+                                    cell.classList.remove('clearing');
+                                }, 500);
+                            }
+                        }
+                        board[newY][newX] = EMPTY;
+                    }
+                }
+            }
+            renderBoard();
+        }
+        
+        // Check for completed lines
+        function checkLines() {
+            let linesToClear = 0;
+            
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                let isLineComplete = true;
+                
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    if (board[y][x] === EMPTY) {
+                        isLineComplete = false;
+                        break;
+                    }
+                }
+                
+                if (isLineComplete) {
+                    linesToClear++;
+                    
+                    // Add animation
+                    for (let x = 0; x < BOARD_WIDTH; x++) {
+                        const cell = document.getElementById(`cell-${x}-${y}`);
+                        if (cell) {
+                            cell.classList.add('clearing');
+                        }
+                    }
+                    
+                    // Move all lines above down
+                    for (let yy = y; yy > 0; yy--) {
+                        for (let x = 0; x < BOARD_WIDTH; x++) {
+                            board[yy][x] = board[yy-1][x];
+                        }
+                    }
+                    
+                    // Clear top line
+                    for (let x = 0; x < BOARD_WIDTH; x++) {
+                        board[0][x] = EMPTY;
+                    }
+                    
+                    y++; // Check same line again after shifting
+                }
+            }
+            
+            if (linesToClear > 0) {
+                // Update score based on lines cleared
+                const linePoints = [0, 100, 300, 500, 800];
+                addScore(linePoints[linesToClear]);
+                
+                linesCleared += linesToClear;
+                
+                // Add power-ups for multiple lines
+                if (linesToClear >= 2) {
+                    clearCount = Math.min(clearCount + 1, 5);
+                    updateClearCount();
+                }
+                if (linesToClear >= 3) {
+                    bombCount = Math.min(bombCount + 1, 3);
+                    updateBombCount();
+                }
+                
+                // Level up every 10 lines
+                level = Math.floor(linesCleared / 10) + 1;
+                
+                updateStats();
+                updateGameSpeed();
+                setTimeout(renderBoard, 500); // Wait for animation
+            }
+        }
+        
+        // Move piece
+        function movePiece(dx, dy) {
+            if (!currentPiece || isPaused || isGameOver) return;
+            
+            if (!checkCollision(currentPiece.x + dx, currentPiece.y + dy, currentPiece.shape)) {
+                currentPiece.x += dx;
+                currentPiece.y += dy;
+                renderBoard();
+                return true;
+            }
+            
+            // If moving down and collision, merge piece
+            if (dy > 0) {
+                mergePiece();
+            }
+            
+            return false;
+        }
+        
+        // Rotate piece
+        function rotatePiece() {
+            if (!currentPiece || isPaused || isGameOver || currentPiece.isBomb) return;
+            
+            const rotated = [];
+            const shape = currentPiece.shape;
+            const size = shape.length;
+            
+            // Create rotated matrix
+            for (let y = 0; y < size; y++) {
+                rotated[y] = [];
+                for (let x = 0; x < size; x++) {
+                    rotated[y][x] = shape[size - 1 - x][y];
+                }
+            }
+            
+            // Check if rotation is valid
+            if (!checkCollision(currentPiece.x, currentPiece.y, rotated)) {
+                currentPiece.shape = rotated;
+                renderBoard();
+            }
+        }
+        
+        // Hard drop
+        function hardDrop() {
+            if (!currentPiece || isPaused || isGameOver) return;
+            
+            while (movePiece(0, 1)) {
+                // Keep moving down until collision
+            }
+        }
+        
+        // Add score
+        function addScore(points) {
+            score += points * level;
+            updateStats();
+        }
+        
+        // Update game speed based on level
+        function updateGameSpeed() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            
+            const speed = Math.max(1000 - (level - 1) * 100, 100);
+            gameInterval = setInterval(() => {
+                movePiece(0, 1);
+            }, speed);
+        }
+        
+        // Update stats display
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('lines').textContent = linesCleared;
+            document.getElementById('high-score').textContent = highScore;
+            
+            // Update high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('tetrisHighScore', highScore);
+            }
+        }
+        
+        // Update bomb count display
+        function updateBombCount() {
+            document.getElementById('bomb-count').textContent = bombCount;
+            document.getElementById('powerup-bomb').disabled = bombCount === 0;
+        }
+        
+        // Update clear count display
+        function updateClearCount() {
+            document.getElementById('clear-count').textContent = clearCount;
+            document.getElementById('powerup-clear').disabled = clearCount === 0;
+        }
+        
+        // Use bomb power-up
+        function useBomb() {
+            if (bombCount > 0 && !isPaused && !isGameOver) {
+                bombCount--;
+                updateBombCount();
+                
+                // Find a completed line to bomb
+                for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                    let hasBlock = false;
+                    for (let x = 0; x < BOARD_WIDTH; x++) {
+                        if (board[y][x] !== EMPTY) {
+                            hasBlock = true;
+                            explodeBomb(x, y);
+                            addScore(200);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Clear line power-up
+        function clearLine() {
+            if (clearCount > 0 && !isPaused && !isGameOver) {
+                clearCount--;
+                updateClearCount();
+                
+                // Find the lowest completed line
+                for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                    let isLineComplete = true;
+                    for (let x = 0; x < BOARD_WIDTH; x++) {
+                        if (board[y][x] === EMPTY) {
+                            isLineComplete = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isLineComplete) {
+                        // Clear the line
+                        for (let x = 0; x < BOARD_WIDTH; x++) {
+                            const cell = document.getElementById(`cell-${x}-${y}`);
+                            if (cell) {
+                                cell.classList.add('clearing');
+                            }
+                            board[y][x] = EMPTY;
+                        }
+                        
+                        // Move all lines above down
+                        for (let yy = y; yy > 0; yy--) {
+                            for (let x = 0; x < BOARD_WIDTH; x++) {
+                                board[yy][x] = board[yy-1][x];
+                            }
+                        }
+                        
+                        addScore(100);
+                        linesCleared++;
+                        updateStats();
+                        setTimeout(renderBoard, 300);
+                        return;
+                    }
+                }
+            }
+        }
+        
+        // Start game
+        function startGame() {
+            if (isGameOver) {
+                resetGame();
+                return;
+            }
+            
+            if (!gameInterval) {
+                isPaused = false;
+                document.querySelector('.pause-btn').textContent = 'PAUSE';
+                updateGameSpeed();
+                
+                if (!currentPiece) {
+                    initBoard();
+                    nextPiece = getRandomPiece();
+                    createNewPiece();
+                    updateStats();
+                    updateBombCount();
+                    updateClearCount();
+                }
+            }
+        }
+        
+        // Toggle pause
+        function togglePause() {
+            if (isGameOver || !gameInterval) return;
+            
+            isPaused = !isPaused;
+            document.querySelector('.pause-btn').textContent = isPaused ? 'RESUME' : 'PAUSE';
+            
+            if (isPaused) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+            } else {
+                updateGameSpeed();
+            }
+        }
+        
+        // Reset game
+        function resetGame() {
+            clearInterval(gameInterval);
+            gameInterval = null;
+            isPaused = false;
+            isGameOver = false;
+            score = 0;
+            level = 1;
+            linesCleared = 0;
+            bombCount = 0;
+            clearCount = 3;
+            
+            document.querySelector('.pause-btn').textContent = 'PAUSE';
+            document.getElementById('game-over').style.display = 'none';
+            
+            initBoard();
+            nextPiece = getRandomPiece();
+            createNewPiece();
+            updateStats();
+            updateBombCount();
+            updateClearCount();
+        }
+        
+        // Game over
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            gameInterval = null;
+            
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-lines').textContent = linesCleared;
+            document.getElementById('game-over').style.display = 'block';
+        }
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (isGameOver) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    movePiece(-1, 0);
+                    break;
+                case 'ArrowRight':
+                    movePiece(1, 0);
+                    break;
+                case 'ArrowDown':
+                    movePiece(0, 1);
+                    break;
+                case 'ArrowUp':
+                    rotatePiece();
+                    break;
+                case ' ':
+                    hardDrop();
+                    e.preventDefault();
+                    break;
+                case 'p':
+                case 'P':
+                    togglePause();
+                    break;
+                case 'r':
+                case 'R':
+                    resetGame();
+                    break;
+            }
+        });
+        
+        // Initialize game on load
+        window.onload = function() {
+            initBoard();
+            renderNextPiece();
+            updateStats();
+            updateBombCount();
+            updateClearCount();
+        };
+    </script>
+</body>
+</html>
