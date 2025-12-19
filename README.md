@@ -4,7 +4,7 @@
 
 > **A revamped version of the classic game Tetris featuring explosive power-ups, leveling mechanics, and a mobile-friendly classic mode.**
 
-## 📖 Overview
+## Overview
 
 **Tetris Reworked** is a web-based implementation of the legendary tile-matching puzzle game, built entirely with vanilla HTML5, CSS3, and JavaScript. This repository contains two distinct versions of the game:
 
